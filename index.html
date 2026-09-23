@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sparsity</title>
+<meta name="description" content="Onchain research. Daily wallet flows, holder strength and attention across the trenches.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20fill%3D%22%23313131%22/%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23F1F2EC%22/%3E%3Crect%20x%3D%2213%22%20y%3D%229%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%232356F6%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2217%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23E2603A%22/%3E%3Crect%20x%3D%229%22%20y%3D%2221%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23F1F2EC%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#313131;--bg2:#2A2A2A;--fg:#F1F2EC;--dim:#9A9A94;--faint:#4A4A48;--hair:#3D3D3B;
+    --blue:#2356F6;--red:#E2603A;--sans:'Archivo',Helvetica,Arial,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;overflow-x:hidden}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  button,input{font-family:inherit}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 34px}
+  @media(max-width:700px){.wrap{padding:0 18px}}
+  .mono{font-family:var(--mono)}
+  .up{text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-family:var(--mono)}
+
+  /* nav */
+  .nav{position:fixed;top:0;left:0;right:0;z-index:40;transition:background .3s,border-color .3s;border-bottom:1px solid transparent;background:linear-gradient(180deg,rgba(49,49,49,.92),rgba(49,49,49,0))}
+  .nav.stuck{background:rgba(49,49,49,.92);backdrop-filter:blur(10px);border-bottom-color:var(--hair)}
+  .nav .wrap{display:flex;align-items:center;gap:26px;height:66px}
+  .brand{font-weight:600;font-size:19px;letter-spacing:-.02em}
+  .nav .links{margin-left:auto;display:flex;gap:26px;color:var(--dim)}
+  .nav .links a:hover{color:var(--fg)}
+  .cta{background:var(--fg);color:var(--bg);padding:10px 16px;font-weight:500;font-size:12.5px;transition:background .2s,color .2s}
+  .cta:hover{background:var(--blue);color:var(--fg)}
+  @media(max-width:760px){.nav .links .opt{display:none}}
+
+  /* hero */
+  .hero{position:relative;height:100vh;min-height:620px;max-height:1000px;overflow:hidden;display:grid;place-items:center}
+  #field{position:absolute;inset:0;width:100%;height:100%}
+  .hero .mid{position:relative;z-index:2;text-align:center;padding:0 20px}
+  .mark{font-weight:600;font-size:clamp(64px,12vw,168px);letter-spacing:-.045em;line-height:.9}
+  .mark span{display:inline-block;opacity:0;transform:translateY(14px);animation:up .7s cubic-bezier(.2,.8,.2,1) forwards}
+  @keyframes up{to{opacity:1;transform:none}}
+  .sub{letter-spacing:.34em;font-family:var(--mono);font-size:clamp(11px,1.3vw,15px);margin-top:10px;opacity:0;animation:up .7s .9s cubic-bezier(.2,.8,.2,1) forwards}
+  .hero p{max-width:44ch;margin:30px auto 0;color:#CFCFC9;line-height:1.6;font-size:16px;opacity:0;animation:up .7s 1.1s cubic-bezier(.2,.8,.2,1) forwards}
+  .hero .btns{margin-top:32px;display:flex;gap:12px;justify-content:center;opacity:0;animation:up .7s 1.3s cubic-bezier(.2,.8,.2,1) forwards}
+  .ghost{border:1px solid var(--faint);padding:10px 16px;font-size:12.5px;font-weight:500}
+  .xbtn{width:36px;height:36px;border:1px solid var(--faint);display:grid;place-items:center;color:var(--fg);transition:background .2s,color .2s,border-color .2s;flex-shrink:0}
+  .xbtn svg{fill:currentColor}
+  .xbtn:hover{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .tokbtn{display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:var(--fg);padding:10px 15px;font-weight:600;font-size:12.5px;transition:background .2s,color .2s}
+  .tokbtn:hover{background:var(--fg);color:var(--bg)}
+  .tokbtn svg{stroke:currentColor}
+  .ghost:hover{border-color:var(--fg)}
+  .scroll{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:2;color:var(--dim);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;animation:bob 2.4s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,6px)}}
+
+  /* sections */
+  .sec{padding:100px 0;border-top:1px solid var(--hair);position:relative}
+  .lab{display:flex;justify-content:space-between;gap:20px;color:var(--dim);margin-bottom:38px;flex-wrap:wrap}
+  .lab b{color:var(--fg);font-weight:500}
+  h2{font-weight:600;font-size:clamp(28px,3.6vw,46px);letter-spacing:-.03em;line-height:1.1;max-width:20ch}
+  .lead{color:#CFCFC9;line-height:1.65;font-size:17px;max-width:54ch;margin-top:20px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+  @media(max-width:900px){.two{grid-template-columns:1fr;gap:34px}}
+
+  /* what we track */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
+  @media(max-width:960px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--bg2);border:1px solid var(--hair);padding:22px;display:flex;flex-direction:column;gap:14px;transition:border-color .25s,transform .25s}
+  .card:hover{border-color:var(--faint);transform:translateY(-3px)}
+  .card h3{font-weight:600;font-size:19px;letter-spacing:-.01em}
+  .card p{color:var(--dim);line-height:1.55;font-size:13.5px}
+  .card .viz{height:110px;position:relative}
+  .card canvas{width:100%;height:110px;display:block}
+
+  /* coverage grid */
+  .cover{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--hair);border:1px solid var(--hair)}
+  @media(max-width:900px){.cover{grid-template-columns:repeat(3,1fr)}}
+  .cover div{background:var(--bg);padding:20px 16px;min-height:96px;display:flex;flex-direction:column;justify-content:space-between;transition:background .25s}
+  .cover div:hover{background:var(--bg2)}
+  .cover b{font-weight:600;font-size:15px}
+  .cover span{color:var(--dim);font-family:var(--mono);font-size:11px}
+
+  /* numbers */
+  .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  @media(max-width:860px){.nums{grid-template-columns:1fr 1fr}}
+  .nums b{display:block;font-weight:600;font-size:clamp(34px,4.6vw,56px);letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .nums span{display:block;color:var(--dim);margin-top:10px;font-size:13px}
+
+  /* report */
+  .report{background:var(--bg2);border:1px solid var(--hair);padding:26px}
+  .report .top{display:flex;justify-content:space-between;color:var(--dim);font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--hair);padding-bottom:12px;margin-bottom:16px}
+  .report h4{font-weight:600;font-size:17px;margin-bottom:10px}
+  .report li{color:#CFCFC9;line-height:1.6;font-size:13.5px;margin:0 0 8px 18px}
+  .report .tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:3px 8px;border:1px solid var(--faint);color:var(--dim);margin-right:6px}
+
+  /* subscribe */
+  .sub-form{display:flex;gap:10px;margin-top:26px;max-width:460px}
+  .sub-form input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--hair);color:var(--fg);padding:13px 14px;outline:none;font-size:14px}
+  .sub-form input:focus{border-color:var(--fg)}
+  .sub-form button{background:var(--fg);color:var(--bg);border:none;padding:0 20px;font-weight:600;font-size:13px;cursor:pointer}
+  .sub-form button:hover{background:var(--blue);color:var(--fg)}
+  .sub-note{color:var(--dim);margin-top:12px;font-size:12.5px;min-height:1.3em}
+
+  footer{border-top:1px solid var(--hair);padding:34px 0 48px}
+  footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--dim);font-size:12.5px}
+  .rv{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .9s cubic-bezier(.2,.8,.2,1)}
+  .rv.seen{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv,.mark span,.sub,.hero p,.hero .btns{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"><div class="wrap">
+  <a class="brand" href="#top">Sparsity</a>
+  <div class="links">
+    <a class="opt" href="#track">What we track</a><a class="opt" href="#coverage">Coverage</a><a class="opt" href="#report">Reports</a>
+    <a class="xbtn" id="xLink" href="https://x.com/" target="_blank" rel="noopener noreferrer" aria-label="Sparsity on X"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a><a class="tokbtn" id="tokTop" target="_blank" rel="noopener noreferrer">$SPAR <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1h6v6M9 1L1 9" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></a>
+  </div>
+</div></nav>
+
+<header class="hero" id="top">
+  <canvas id="field"></canvas>
+  <div class="mid">
+    <div class="mark" id="mark">Sparsity</div>
+    <div class="sub">ONCHAIN RESEARCH</div>
+    <p>Research firms cover the majors. We cover what moves underneath: daily wallet flows, holder strength and attention across the trenches.</p>
+    <div class="btns"><a class="tokbtn" id="tokHero" target="_blank" rel="noopener noreferrer">$SPAR on Etherscan <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1h6v6M9 1L1 9" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></a><a class="ghost" href="#track">What we track</a></div>
+  </div>
+  <div class="scroll mono">SCROLL</div>
+</header>
+
+<section class="sec" id="why"><div class="wrap">
+  <div class="two">
+    <div class="rv"><h2>Coverage stops where the rotation starts.</h2></div>
+    <div class="rv">
+      <p class="lead">Today's research firms cover crypto at the majors or protocol level. That leaves onchain traders with nothing on the day to day rotations, which is where most of the movement actually happens.</p>
+      <p class="lead">We track what they miss. Every day, across thousands of small caps: who is buying, who is holding, and what the room is looking at.</p>
+    </div>
+  </div>
+  <div class="nums rv" style="margin-top:64px">
+    <div><b><span class="count" data-to="4820">0</span></b><span>Tokens tracked daily</span></div>
+    <div><b><span class="count" data-to="1900000" data-fmt="m">0</span></b><span>Wallets in the index</span></div>
+    <div><b><span class="count" data-to="11">0</span></b><span>Chains covered</span></div>
+    <div><b><span class="count" data-to="6">0</span>am</b><span>Daily, before the open</span></div>
+  </div>
+</div></section>
+
+<section class="sec" id="track"><div class="wrap">
+  <div class="lab rv"><b>What we track</b><span>Three readings, every day</span></div>
+  <h2 class="rv">Flows, strength, attention.</h2>
+  <div class="cards">
+    <div class="card rv">
+      <div class="viz"><canvas data-viz="flows"></canvas></div>
+      <h3>Daily wallet flows</h3>
+      <p>Net buying and selling by wallet cohort, not by volume. Smart money, fresh wallets, exits, and who is on the other side of them.</p>
+    </div>
+    <div class="card rv">
+      <div class="viz"><canvas data-viz="holders"></canvas></div>
+      <h3>Holder strength</h3>
+      <p>How much of the float is held by wallets that have not sold a dip, how concentrated the top is, and how fast that is changing.</p>
+    </div>
+    <div class="card rv">
+      <div class="viz"><canvas data-viz="attention"></canvas></div>
+      <h3>Attention</h3>
+      <p>Mentions, new holders per hour and wallet overlap between names, so you can see a rotation forming before the chart does.</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec" id="coverage"><div class="wrap">
+  <div class="lab rv"><b>Coverage</b><span>The trenches, not the majors</span></div>
+  <h2 class="rv">Where the rotations happen.</h2>
+  <div class="cover rv" style="margin-top:38px">
+    <div><b>Launchpads</b><span>day one flow</span></div>
+    <div><b>Memes</b><span>holder churn</span></div>
+    <div><b>AI agents</b><span>wallet overlap</span></div>
+    <div><b>DeFi small caps</b><span>real usage</span></div>
+    <div><b>NFT tokens</b><span>floor to flow</span></div>
+    <div><b>Infra</b><span>quiet accumulation</span></div>
+    <div><b>Gaming</b><span>retention</span></div>
+    <div><b>RWA</b><span>new entrants</span></div>
+    <div><b>Stablecoin pairs</b><span>rotation source</span></div>
+    <div><b>Bridges</b><span>chain to chain</span></div>
+    <div><b>New listings</b><span>first 48 hours</span></div>
+    <div><b>Revivals</b><span>old names waking</span></div>
+  </div>
+</div></section>
+
+<section class="sec" id="report"><div class="wrap">
+  <div class="two">
+    <div class="rv">
+      <div class="lab"><b>The daily</b><span>Before the open</span></div>
+      <h2>One page. Read it in four minutes.</h2>
+      <p class="lead">Every morning: what rotated overnight, which cohorts moved, what is quietly accumulating, and what looks like distribution dressed up as strength.</p>
+    </div>
+    <div class="report rv">
+      <div class="top"><span>SPARSITY DAILY</span><span id="repDate">No. 118</span></div>
+      <h4>Rotation out of launchpad names into AI agents</h4>
+      <ul>
+        <li>Smart money net bought 4 of the top 10 agent names, first time in 9 days.</li>
+        <li>Launchpad cohort sold into strength: holders down 6%, price up 11%.</li>
+        <li>Fresh wallets are concentrating, with the top 20 taking 31% of new supply.</li>
+        <li>Attention leads flow by roughly 14 hours in this cohort.</li>
+      </ul>
+      <div style="margin-top:16px"><span class="tag">FLOWS</span><span class="tag">HOLDERS</span><span class="tag">ATTENTION</span></div>
+    </div>
+  </div>
+</div></section>
+
+<footer><div class="wrap"><span>Sparsity &#183; Onchain research</span><span class="mono">TRACKING THE TRENCHES</span></div></footer>
+<script>
+(function(){
+"use strict";
+var reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function $(id){return document.getElementById(id);}
+/* the token page both $SPAR buttons open, and the X account */
+var SPAR_ADDRESS="";
+var X_URL="https://x.com/sparsitydata";
+(function(){
+  var url=SPAR_ADDRESS?("https://etherscan.io/token/"+SPAR_ADDRESS):"#top";
+  ["tokTop","tokHero"].forEach(function(id){ var el=$(id); if(el) el.href=url; });
+  var x=$("xLink"); if(x) x.href=X_URL;
+})();
+var CREAM="#F1F2EC", BLUE="#2356F6", RED="#E2603A", BG="#313131";
+
+/* ---------- the field: the brand mark, alive ----------
+   layered value noise gathers the glyphs into clumps with real empty space
+   between them, the way the mark is drawn. the noise drifts, so clusters form,
+   travel and thin out. the middle and the top band stay quiet for the type. */
+(function(){
+  var cv=$("field"), ctx=cv.getContext("2d"), cells=[], cols=0, rows=0, U=15, dpr=1, t=0;
+  function hash(x,y){ var n=Math.sin(x*127.1+y*311.7)*43758.5453; return n-Math.floor(n); }
+  function vnoise(x,y){
+    var xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi;
+    var u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+    return hash(xi,yi)*(1-u)*(1-v)+hash(xi+1,yi)*u*(1-v)+hash(xi,yi+1)*(1-u)*v+hash(xi+1,yi+1)*u*v;
+  }
+  function fbm(x,y){ return vnoise(x,y)*.55+vnoise(x*2.1,y*2.1)*.28+vnoise(x*4.3,y*4.3)*.17; }
+  function build(){
+    dpr=Math.min(2,window.devicePixelRatio||1);
+    var w=cv.clientWidth, h=cv.clientHeight;
+    cv.width=w*dpr; cv.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    U=w<700?12:15; cols=Math.ceil(w/U)+1; rows=Math.ceil(h/U)+1; cells=[];
+    for(var y=0;y<rows;y++) for(var x=0;x<cols;x++){
+      var nx=(x/cols)*2-1, ny=(y/rows)*2-1;
+      var d=Math.sqrt(nx*nx*1.2+ny*ny*2.6);
+      var clear=Math.min(1,Math.max(0,(d-.40)/.55));      /* quiet middle */
+      var top=Math.min(1,Math.max(0,(y*U-58)/70));         /* quiet top band, so the nav reads */
+      cells.push({x:x*U,y:y*U,gx:x*.085,gy:y*.085,mask:clear*clear*top,
+        g:(Math.random()*6)|0, ph:Math.random()*6.3, sp:.4+Math.random()*1.1, cr:Math.random()});
+    }
+  }
+  function colourFor(c,n){
+    if(n>.66&&c.cr<.42) return BLUE;         /* the densest clumps run blue */
+    if(c.cr>.965) return RED;                /* a few embers */
+    return CREAM;
+  }
+  function glyph(c,a,s,col){
+    ctx.globalAlpha=a; ctx.fillStyle=col; ctx.strokeStyle=col; ctx.lineWidth=1;
+    var x=c.x, y=c.y, m=(U-s)/2;
+    switch(c.g){
+      case 0: ctx.fillRect(x+m,y+m,s,s); break;
+      case 1: ctx.strokeRect(x+m+.5,y+m+.5,s-1,s-1); break;
+      case 2: ctx.beginPath(); ctx.arc(x+U/2,y+U/2,s/2,0,6.3); ctx.fill(); break;
+      case 3: ctx.beginPath(); ctx.arc(x+U/2,y+U/2,s/2-.5,0,6.3); ctx.stroke(); break;
+      case 4: ctx.fillRect(x+U/2-s/2,y+U/2-.5,s,1); ctx.fillRect(x+U/2-.5,y+U/2-s/2,1,s); break;
+      default: ctx.fillRect(x+m+s/4,y+m+s/4,s/2,s/2);
+    }
+    ctx.globalAlpha=1;
+  }
+  function frame(){
+    t+=.006;
+    ctx.fillStyle=BG; ctx.fillRect(0,0,cv.width,cv.height);
+    for(var i=0;i<cells.length;i++){
+      var c=cells[i];
+      var n=fbm(c.gx+t, c.gy-t*.45);                    /* the clumps drift */
+      var lit=(n-.44)/.34;                              /* hard threshold leaves real gaps */
+      if(lit<=0) continue;
+      var a=Math.min(1,lit)*c.mask*(.45+((Math.sin(t*9*c.sp+c.ph)+1)/2)*.55);
+      if(a<.05) continue;
+      glyph(c,a,Math.max(2,U-5),colourFor(c,n));
+    }
+    if(!reduced) requestAnimationFrame(frame);
+  }
+  build(); frame();
+  window.addEventListener("resize",function(){ build(); if(reduced) frame(); });
+})();
+
+/* ---------- the wordmark sets itself letter by letter ---------- */
+(function(){
+  var el=$("mark"), word=el.textContent; el.textContent="";
+  word.split("").forEach(function(ch,i){
+    var s=document.createElement("span"); s.textContent=ch; s.style.animationDelay=(120+i*55)+"ms"; el.appendChild(s);
+  });
+})();
+
+/* ---------- nav ---------- */
+window.addEventListener("scroll",function(){ $("nav").classList.toggle("stuck",window.scrollY>40); },{passive:true});
+
+/* ---------- the three card visuals ---------- */
+function sizeCanvas(cvs,h){ var d=Math.min(2,window.devicePixelRatio||1), w=cvs.clientWidth;
+  cvs.width=w*d; cvs.height=h*d; var x=cvs.getContext("2d"); x.setTransform(d,0,0,d,0,0); return {x:x,w:w,h:h}; }
+var vizzes=[];
+document.querySelectorAll("[data-viz]").forEach(function(cvs){
+  var kind=cvs.dataset.viz, t=Math.random()*10;
+  function draw(){
+    var s=sizeCanvas(cvs,110), x=s.x, w=s.w, h=s.h;
+    x.clearRect(0,0,w,h); t+=.02;
+    if(kind==="flows"){                      /* net buying and selling by cohort */
+      var n=22, bw=w/n;
+      for(var i=0;i<n;i++){
+        var v=Math.sin(t+i*.55)*Math.cos(t*.4+i*.2), hgt=Math.abs(v)*(h/2-8);
+        x.fillStyle=v>=0?BLUE:RED;
+        x.fillRect(i*bw+1,v>=0?h/2-hgt:h/2,bw-3,hgt);
+      }
+      x.strokeStyle="#4A4A48"; x.beginPath(); x.moveTo(0,h/2); x.lineTo(w,h/2); x.stroke();
+    } else if(kind==="holders"){             /* the float, held versus sold */
+      var cols=26, rws=7, cw=w/cols, ch=h/rws;
+      for(var r=0;r<rws;r++) for(var c=0;c<cols;c++){
+        var strong=(Math.sin(c*.5+t*.7)+Math.cos(r*.9-t*.5))>(-.2+ (c/cols)*1.5);
+        x.fillStyle=strong?CREAM:"#4A4A48";
+        x.globalAlpha=strong?.9:.5;
+        x.fillRect(c*cw+1,r*ch+1,cw-2,ch-2);
+      }
+      x.globalAlpha=1;
+    } else {                                  /* attention, leading the move */
+      x.strokeStyle="#4A4A48"; x.lineWidth=1;
+      for(var g=1;g<4;g++){ x.beginPath(); x.moveTo(0,g*h/4); x.lineTo(w,g*h/4); x.stroke(); }
+      [[CREAM,0],[BLUE,1.1]].forEach(function(pair,k){
+        x.strokeStyle=pair[0]; x.lineWidth=k?2:1.5; x.beginPath();
+        for(var i=0;i<=60;i++){
+          var px=i/60*w, v=Math.sin(i*.16+t*1.2-pair[1])*.6+Math.sin(i*.07+t*.5)*.4;
+          var py=h/2-v*(h/2-10);
+          i?x.lineTo(px,py):x.moveTo(px,py);
+        }
+        x.stroke();
+      });
+    }
+  }
+  vizzes.push(draw); draw();
+});
+if(!reduced) setInterval(function(){ vizzes.forEach(function(d){ d(); }); },70);
+
+/* ---------- counters ---------- */
+function count(el){
+  var to=+el.dataset.to, fmt=el.dataset.fmt;
+  function show(v){ el.textContent = fmt==="m" ? (v/1e6).toFixed(1)+"m" : Math.round(v).toLocaleString("en-US"); }
+  if(reduced){ show(to); return; }
+  var t0=performance.now(); (function f(now){ var p=Math.min(1,(now-t0)/1600), e=1-Math.pow(1-p,3); show(to*e); if(p<1) requestAnimationFrame(f); })(t0);
+}
+
+/* ---------- reveals ---------- */
+var rv=document.querySelectorAll(".rv");
+if("IntersectionObserver" in window && !reduced){
+  var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(!e.isIntersecting) return; var el=e.target,
+    sibs=[].filter.call(el.parentElement.children,function(x){return x.classList.contains("rv");}), i=Math.max(0,sibs.indexOf(el));
+    setTimeout(function(){ el.classList.add("seen"); el.querySelectorAll(".count").forEach(count); }, i*90); io.unobserve(el); }); },{threshold:.15});
+  rv.forEach(function(el){ io.observe(el); });
+} else rv.forEach(function(el){ el.classList.add("seen"); el.querySelectorAll(".count").forEach(count); });
+
+window.addEventListener("resize",function(){ vizzes.forEach(function(d){ d(); }); });
+})();
+</script>
+</body></html>
